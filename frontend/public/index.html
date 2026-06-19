@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Fake News Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #00d4ff;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        input[type="file"] {
+            color: #00d4ff;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            border: none;
+            border-radius: 8px;
+            color: #1a1a2e;
+            font-weight: 700;
+            font-size: 1.05em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #00d4ff;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 212, 255, 0.2);
+            border-top: 4px solid #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .score-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .score-number {
+            font-size: 4em;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .risk-indicator {
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1em;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .risk-low {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.4);
+        }
+
+        .risk-medium {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.4);
+        }
+
+        .risk-high {
+            background: rgba(255, 64, 64, 0.2);
+            color: #ff4040;
+            border: 1px solid rgba(255, 64, 64, 0.4);
+        }
+
+        .analysis-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .analysis-details {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .detail-box {
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .detail-title {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .detail-content {
+            color: #e0e0e0;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .flags {
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .flag-title {
+            color: #00d4ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .flag-item {
+            color: #e0e0e0;
+            margin: 8px 0;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .flag-item:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+        }
+
+        .error {
+            background: rgba(255, 64, 64, 0.2);
+            border: 1px solid rgba(255, 64, 64, 0.4);
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Fake News Detector</h1>
+            <p>Multi-Modal Analysis for News Credibility</p>
+        </div>
+
+        <div class="form-section">
+            <form id="analysisForm">
+                <div class="form-group">
+                    <label for="headline">📰 Headline *</label>
+                    <input type="text" id="headline" name="headline" required placeholder="Enter the news headline to analyze">
+                </div>
+
+                <div class="form-group">
+                    <label for="source_url">🌐 Source URL *</label>
+                    <input type="text" id="source_url" name="source_url" required placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="content">📝 Article Content (Optional)</label>
+                    <textarea id="content" name="content" placeholder="Paste the full article text here..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="author">👤 Author (Optional)</label>
+                    <input type="text" id="author" name="author" placeholder="Article author name">
+                </div>
+
+                <div class="form-group">
+                    <label for="image">🖼️ Image (Optional)</label>
+                    <input type="file" id="image" name="image" accept="image/*">
+                </div>
+
+                <button type="submit">Analyze Article</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing article...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+        </div>
+
+        <div class="results-section" id="results">
+            <div class="score-card">
+                <div class="score-display">
+                    <div class="score-number" id="scoreNumber">0%</div>
+                    <div id="riskLevel" class="risk-indicator risk-low">Loading...</div>
+                </div>
+
+                <div class="analysis-details">
+                    <div class="detail-box">
+                        <div class="detail-title">📊 Text Analysis</div>
+                        <div class="detail-content" id="textAnalysis">-</div>
+                    </div>
+                    <div class="detail-box">
+                        <div class="detail-title">🌍 Domain Analysis</div>
+                        <div class="detail-content" id="domainAnalysis">-</div>
+                    </div>
+                    <div class="detail-box">
+                        <div class="detail-title">📢 Headline Corroboration</div>
+                        <div class="detail-content" id="corroborationAnalysis">-</div>
+                    </div>
+                    <div class="detail-box">
+                        <div class="detail-title">🖼️ Image Analysis</div>
+                        <div class="detail-content" id="imageAnalysis">-</div>
+                    </div>
+                </div>
+
+                <div class="flags">
+                    <div class="flag-title">⚠️ Key Findings</div>
+                    <div id="flagsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('analysisForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await analyzeArticle();
+        });
+
+        async function analyzeArticle() {
+            const headline = document.getElementById('headline').value.trim();
+            const source_url = document.getElementById('source_url').value.trim();
+            const content = document.getElementById('content').value.trim();
+            const author = document.getElementById('author').value.trim();
+            const image = document.getElementById('image').files[0];
+
+            if (!headline || !source_url) {
+                showError('Headline and Source URL are required');
+                return;
+            }
+
+            // Validate URL
+            try {
+                new URL(source_url);
+            } catch {
+                showError('Please enter a valid URL');
+                return;
+            }
+
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            errorDiv.classList.remove('show');
+
+            try {
+                const formData = new FormData();
+                formData.append('headline', headline);
+                formData.append('source_url', source_url);
+                formData.append('content', content);
+                formData.append('author', author);
+                if (image) {
+                    formData.append('image', image);
+                }
+
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            const score = data.overall_credibility_score;
+            const riskLevel = data.risk_level;
+
+            document.getElementById('scoreNumber').textContent = `${score}%`;
+
+            const riskElement = document.getElementById('riskLevel');
+            riskElement.textContent = getRiskLabel(riskLevel);
+            riskElement.className = `risk-indicator risk-${riskLevel}`;
+
+            // Text Analysis
+            if (data.text_analysis.matches && data.text_analysis.matches.length > 0) {
+                document.getElementById('textAnalysis').innerHTML = 
+                    `${data.text_analysis.verified_count} verified<br>${data.text_analysis.false_count} false<br>${data.text_analysis.mixed_count} mixed`;
+            } else {
+                document.getElementById('textAnalysis').innerHTML = 'No fact-checks found';
+            }
+
+            // Domain Analysis
+            document.getElementById('domainAnalysis').innerHTML =
+                `${data.domain_analysis.domain}<br>Age: ${data.domain_analysis.domain_age_days} days<br>HTTPS: ${data.domain_analysis.is_https ? '✅' : '❌'}`;
+
+            // Headline Corroboration
+            document.getElementById('corroborationAnalysis').innerHTML =
+                `${data.headline_corroboration.corroborating_sources} sources<br>Widely reported: ${data.headline_corroboration.is_widely_reported ? '✅' : '❌'}`;
+
+            // Image Analysis
+            if (data.image_analysis) {
+                document.getElementById('imageAnalysis').innerHTML =
+                    `Matches: ${data.image_analysis.reverse_search_matches}<br>Status: ${data.image_analysis.authenticity_flag}`;
+            } else {
+                document.getElementById('imageAnalysis').innerHTML = 'No image provided';
+            }
+
+            // Flags
+            const flagsList = document.getElementById('flagsList');
+            flagsList.innerHTML = data.flags.map(flag => `<div class="flag-item">${flag}</div>`).join('');
+
+            results.style.display = 'block';
+        }
+
+        function getRiskLabel(risk) {
+            const labels = {
+                'low': '✅ LOW RISK',
+                'medium': '⚠️ MEDIUM RISK',
+                'high': '🚨 HIGH RISK'
+            };
+            return labels[risk] || risk.toUpperCase();
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
